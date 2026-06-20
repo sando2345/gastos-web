@@ -34,6 +34,8 @@ export interface Transaction {
   date: string
   paymentMethod: string
   notes?: string
+  isFixed: boolean
+  periodId?: string
 }
 
 export interface Category {
@@ -45,13 +47,24 @@ export interface Category {
   isDefault: boolean
 }
 
+export interface Period {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+}
+
 export interface DashboardStats {
   totalIncome: number
   totalExpenses: number
+  totalNormalExpenses: number
+  totalExtras: number
   balance: number
   byCategory: { categoryId: string; name: string; color: string; total: number }[]
   monthlyTrend: { month: string; income: number; expenses: number }[]
 }
+
+export const EXTRA_CATEGORY_ID = '00000000-0000-0000-0000-000000000099'
 
 export const authAPI = {
   login: (email: string, password: string) =>
@@ -65,17 +78,29 @@ export const transactionsAPI = {
   create: (data: object) => api.post('/api/transactions', data),
   update: (id: string, data: object) => api.patch(`/api/transactions/${id}`, data),
   delete: (id: string) => api.delete(`/api/transactions/${id}`),
-  dashboard: (month?: number, year?: number) =>
-    api.get('/api/transactions/dashboard', { params: { month, year } }),
+  dashboard: (periodId?: string) =>
+    api.get('/api/transactions/dashboard', { params: { periodId } }),
+  copyFixed: (fromPeriodId: string, toPeriodId: string) =>
+    api.post('/api/transactions/copy-fixed', { fromPeriodId, toPeriodId }),
 }
 
 export const categoriesAPI = {
   list: () => api.get('/api/categories'),
+  create: (data: object) => api.post('/api/categories', data),
+  update: (id: string, data: object) => api.patch(`/api/categories/${id}`, data),
+  delete: (id: string) => api.delete(`/api/categories/${id}`),
 }
 
 export const budgetsAPI = {
-  list: (month: number, year: number) =>
-    api.get('/api/budgets', { params: { month, year } }),
+  list: (periodId: string) => api.get('/api/budgets', { params: { periodId } }),
   create: (data: object) => api.post('/api/budgets', data),
   update: (id: string, data: object) => api.patch(`/api/budgets/${id}`, data),
+  delete: (id: string) => api.delete(`/api/budgets/${id}`),
+}
+
+export const periodsAPI = {
+  list: () => api.get('/api/periods'),
+  create: (data: object) => api.post('/api/periods', data),
+  update: (id: string, data: object) => api.patch(`/api/periods/${id}`, data),
+  delete: (id: string) => api.delete(`/api/periods/${id}`),
 }

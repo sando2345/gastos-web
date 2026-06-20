@@ -1,11 +1,13 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { LayoutDashboard, ArrowLeftRight, Target, LogOut } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, Target, Tags, Calendar, LogOut } from 'lucide-react'
 
 const nav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transacciones' },
   { to: '/budgets', icon: Target, label: 'Presupuestos' },
+  { to: '/periods', icon: Calendar, label: 'Períodos' },
+  { to: '/categories', icon: Tags, label: 'Categorías' },
 ]
 
 export default function AppLayout() {
@@ -19,7 +21,6 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -32,16 +33,12 @@ export default function AppLayout() {
 
         <nav className="flex-1 p-4 space-y-1">
           {nav.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to} to={to}
+            <NavLink key={to} to={to}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  isActive ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`
-              }
-            >
+              }>
               <Icon size={18} />
               {label}
             </NavLink>
@@ -60,17 +57,14 @@ export default function AppLayout() {
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
+          <button onClick={handleLogout}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
             <LogOut size={16} />
             Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>

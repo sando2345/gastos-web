@@ -1,27 +1,48 @@
 import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
-import { transactionsAPI, DashboardStats } from '../lib/api'
+import { TrendingUp, TrendingDown, Wallet, AlertCircle } from 'lucide-react'
+import { transactionsAPI, periodsAPI, DashboardStats, Period } from '../lib/api'
+import { usePeriodStore } from '../store/periodStore'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
 
-const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-
 export default function Dashboard() {
+  const { selectedPeriodId, setSelectedPeriodId } = usePeriodStore()
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [periods, setPeriods] = useState<Period[]>([])
   const [loading, setLoading] = useState(true)
-  const now = new Date()
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [year, setYear] = useState(now.getFullYear())
 
   useEffect(() => {
+    periodsAPI.list().then((res) => {
+      setPeriods(res.data.data)
+      if (!selectedPeriodId && res.data.data.length > 0) {
+        setSelectedPeriodId(res.data.data[0].id)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!selectedPeriodId) { setLoading(false); return }
     setLoading(true)
-    transactionsAPI.dashboard(month, year)
+    transactionsAPI.dashboard(selectedPeriodId)
       .then((res) => setStats(res.data.data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [month, year])
+  }, [selectedPeriodId])
+
+  if (!selectedPeriodId) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Dashboard</h1>
+        <div className="card text-center py-16 text-gray-400">
+          <p className="text-4xl mb-3">📅</p>
+          <p className="font-medium">Crea tu primer período</p>
+          <p className="text-sm mt-1">Ve a "Períodos" para empezar a registrar tus finanzas</p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -31,26 +52,18 @@ export default function Dashboard() {
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 mt-1">Resumen de tus finanzas</p>
         </div>
-        <div className="flex gap-2">
-          <select className="input w-auto"
-            value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-            {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-          </select>
-          <select className="input w-auto"
-            value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {[2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
+        <select className="input w-auto" value={selectedPeriodId}
+          onChange={(e) => setSelectedPeriodId(e.target.value)}>
+          {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="card">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
@@ -66,9 +79,19 @@ export default function Dashboard() {
             <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
               <TrendingDown size={20} className="text-red-600" />
             </div>
-            <span className="text-sm text-gray-500 font-medium">Gastos</span>
+            <span className="text-sm text-gray-500 font-medium">Gastos presupuesto</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalExpenses ?? 0)}</p>
+          <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalNormalExpenses ?? 0)}</p>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+              <AlertCircle size={20} className="text-orange-600" />
+            </div>
+            <span className="text-sm text-gray-500 font-medium">Gastos extras</span>
+          </div>
+          <p className="text-2xl font-bold text-orange-600">{fmt(stats?.totalExtras ?? 0)}</p>
         </div>
 
         <div className="card">
@@ -86,24 +109,18 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-2 gap-6">
-        {/* Pie chart */}
         <div className="card">
           <h3 className="font-semibold text-gray-900 mb-4">Gastos por categoría</h3>
           {(stats?.byCategory?.length ?? 0) === 0 ? (
-            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-              Sin gastos este mes
-            </div>
+            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Sin gastos este período</div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie data={stats!.byCategory} dataKey="total" nameKey="name"
                   cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) =>
                     `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {stats!.byCategory.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
+                  {stats!.byCategory.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(v: number) => fmt(v)} />
               </PieChart>
@@ -111,17 +128,14 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Bar chart */}
         <div className="card">
-          <h3 className="font-semibold text-gray-900 mb-4">Tendencia mensual</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Tendencia por período</h3>
           {(stats?.monthlyTrend?.length ?? 0) === 0 ? (
-            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-              Sin datos históricos
-            </div>
+            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Sin datos históricos</div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={stats!.monthlyTrend}>
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Legend />
@@ -133,7 +147,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Category breakdown */}
       {(stats?.byCategory?.length ?? 0) > 0 && (
         <div className="card mt-6">
           <h3 className="font-semibold text-gray-900 mb-4">Detalle por categoría</h3>

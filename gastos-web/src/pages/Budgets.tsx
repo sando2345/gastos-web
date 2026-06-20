@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { budgetsAPI, categoriesAPI, Category } from '../lib/api'
+import { usePeriodStore } from '../store/periodStore'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
 
 interface Budget {
   id: string; categoryId: string
-  category?: Category; amount: number; month: number; year: number; spent: number
+  category?: Category; amount: number; spent: number
 }
 
 export default function Budgets() {
-  const now = new Date()
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [year, setYear] = useState(now.getFullYear())
+  const { selectedPeriodId } = usePeriodStore()
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -22,13 +21,14 @@ export default function Budgets() {
   const [loading, setLoading] = useState(true)
 
   const load = () => {
+    if (!selectedPeriodId) { setLoading(false); return }
     setLoading(true)
-    Promise.all([budgetsAPI.list(month, year), categoriesAPI.list()])
+    Promise.all([budgetsAPI.list(selectedPeriodId), categoriesAPI.list()])
       .then(([b, c]) => { setBudgets(b.data.data || []); setCategories(c.data.data || []) })
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [month, year])
+  useEffect(() => { load() }, [selectedPeriodId])
 
   const expenseCategories = categories.filter((c) => c.type === 'expense')
 
@@ -36,7 +36,7 @@ export default function Budgets() {
     e.preventDefault()
     setSaving(true)
     try {
-      await budgetsAPI.create({ ...form, amount: Number(form.amount), month, year })
+      await budgetsAPI.create({ ...form, amount: Number(form.amount), periodId: selectedPeriodId })
       setShowForm(false)
       setForm({ categoryId: '', amount: '' })
       load()
@@ -47,31 +47,31 @@ export default function Budgets() {
     }
   }
 
-  const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+  if (!selectedPeriodId) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Presupuestos</h1>
+        <div className="card text-center py-16 text-gray-400">
+          <p className="text-4xl mb-3">📅</p>
+          <p className="font-medium">Selecciona un período primero</p>
+          <p className="text-sm mt-1">Ve a la sección "Períodos" y crea o selecciona uno</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Presupuestos</h1>
-          <p className="text-gray-500 mt-1">Define tus límites mensuales de gasto</p>
+          <p className="text-gray-500 mt-1">Define tus límites de gasto del período</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={() => setShowForm(true)}>
           <Plus size={18} /> Nuevo presupuesto
         </button>
       </div>
 
-      {/* Month selector */}
-      <div className="flex gap-2 mb-6">
-        <select className="input w-auto" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-          {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-        </select>
-        <select className="input w-auto" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-          {[2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-      </div>
-
-      {/* Form modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -101,7 +101,6 @@ export default function Budgets() {
         </div>
       )}
 
-      {/* Budget cards */}
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
@@ -109,8 +108,7 @@ export default function Budgets() {
       ) : budgets.length === 0 ? (
         <div className="card text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🎯</p>
-          <p className="font-medium">No hay presupuestos para este mes</p>
-          <p className="text-sm mt-1">Crea un presupuesto para rastrear tus gastos</p>
+          <p className="font-medium">No hay presupuestos en este período</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
@@ -135,10 +133,7 @@ export default function Budgets() {
                 </div>
                 <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: over ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981'
-                    }} />
+                    style={{ width: `${pct}%`, backgroundColor: over ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981' }} />
                 </div>
                 <p className="text-xs text-gray-400 mt-2 text-right">
                   {pct.toFixed(0)}% utilizado · Disponible: {fmt(Math.max(b.amount - b.spent, 0))}

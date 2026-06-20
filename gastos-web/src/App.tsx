@@ -5,6 +5,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
+import Categories from './pages/Categories'
+import Periods from './pages/Periods'
 import AppLayout from './components/layout/AppLayout'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -27,6 +29,8 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="budgets" element={<Budgets />} />
+          <Route path="periods" element={<Periods />} />
+          <Route path="categories" element={<Categories />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
