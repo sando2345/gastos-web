@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { TrendingUp, TrendingDown, Wallet, AlertCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, AlertCircle, Target, Pin, Shuffle } from 'lucide-react'
 import { transactionsAPI, periodsAPI, DashboardStats, Period } from '../lib/api'
 import { usePeriodStore } from '../store/periodStore'
 
@@ -50,6 +50,11 @@ export default function Dashboard() {
     </div>
   )
 
+  const totalBudget = stats?.totalBudget ?? 0
+  const totalExpenses = stats?.totalExpenses ?? 0
+  const budgetPct = totalBudget > 0 ? Math.min((totalExpenses / totalBudget) * 100, 100) : 0
+  const overBudget = totalExpenses > totalBudget && totalBudget > 0
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
@@ -63,7 +68,70 @@ export default function Dashboard() {
         </select>
       </div>
 
+      {/* Resumen de presupuesto */}
+      <div className="card mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900">Resumen del presupuesto</h3>
+          <span className={`text-sm font-medium ${overBudget ? 'text-red-600' : 'text-gray-500'}`}>
+            {fmt(totalExpenses)} de {fmt(totalBudget)} ({budgetPct.toFixed(0)}%)
+          </span>
+        </div>
+        <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-2">
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${budgetPct}%`, backgroundColor: overBudget ? '#ef4444' : budgetPct > 80 ? '#f59e0b' : '#10b981' }} />
+        </div>
+        <p className="text-xs text-gray-400">
+          {overBudget
+            ? `Te has excedido en ${fmt(totalExpenses - totalBudget)}`
+            : `Disponible: ${fmt(Math.max(totalBudget - totalExpenses, 0))}`}
+        </p>
+      </div>
+
+      {/* Tarjetas de totales */}
       <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Target size={20} className="text-indigo-600" />
+            </div>
+            <span className="text-sm text-gray-500 font-medium">Presupuesto total</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{fmt(totalBudget)}</p>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+              <TrendingDown size={20} className="text-red-600" />
+            </div>
+            <span className="text-sm text-gray-500 font-medium">Gastado total</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{fmt(totalExpenses)}</p>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Pin size={20} className="text-blue-600" />
+            </div>
+            <span className="text-sm text-gray-500 font-medium">Gastos fijos</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalFixed ?? 0)}</p>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Shuffle size={20} className="text-purple-600" />
+            </div>
+            <span className="text-sm text-gray-500 font-medium">Gastos variables</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalVariable ?? 0)}</p>
+        </div>
+      </div>
+
+      {/* Segunda fila: ingresos, extras, saldo */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="card">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
@@ -72,16 +140,6 @@ export default function Dashboard() {
             <span className="text-sm text-gray-500 font-medium">Ingresos</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalIncome ?? 0)}</p>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-              <TrendingDown size={20} className="text-red-600" />
-            </div>
-            <span className="text-sm text-gray-500 font-medium">Gastos presupuesto</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalNormalExpenses ?? 0)}</p>
         </div>
 
         <div className="card">
@@ -109,6 +167,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Gráficos */}
       <div className="grid grid-cols-2 gap-6">
         <div className="card">
           <h3 className="font-semibold text-gray-900 mb-4">Gastos por categoría</h3>
@@ -146,29 +205,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-
-      {(stats?.byCategory?.length ?? 0) > 0 && (
-        <div className="card mt-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Detalle por categoría</h3>
-          <div className="space-y-3">
-            {stats!.byCategory.map((cat) => {
-              const pct = stats!.totalExpenses > 0 ? (cat.total / stats!.totalExpenses) * 100 : 0
-              return (
-                <div key={cat.categoryId}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-gray-700">{cat.name}</span>
-                    <span className="text-gray-500">{fmt(cat.total)} ({pct.toFixed(1)}%)</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full">
-                    <div className="h-2 rounded-full transition-all"
-                      style={{ width: `${pct}%`, backgroundColor: cat.color }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

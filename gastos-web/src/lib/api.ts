@@ -59,6 +59,9 @@ export interface DashboardStats {
   totalExpenses: number
   totalNormalExpenses: number
   totalExtras: number
+  totalBudget: number
+  totalFixed: number
+  totalVariable: number
   balance: number
   byCategory: { categoryId: string; name: string; color: string; total: number }[]
   monthlyTrend: { month: string; income: number; expenses: number }[]
