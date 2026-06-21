@@ -1,11 +1,12 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { LayoutDashboard, ArrowLeftRight, Target, Tags, Calendar, LogOut } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, Target, Tags, Calendar, ClipboardList, LogOut } from 'lucide-react'
 
 const nav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transacciones' },
   { to: '/budgets', icon: Target, label: 'Presupuestos' },
+  { to: '/budget-templates', icon: ClipboardList, label: 'Presupuestos base' },
   { to: '/periods', icon: Calendar, label: 'Períodos' },
   { to: '/categories', icon: Tags, label: 'Categorías' },
 ]

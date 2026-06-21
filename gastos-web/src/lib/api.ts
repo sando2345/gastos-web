@@ -107,3 +107,10 @@ export const periodsAPI = {
   update: (id: string, data: object) => api.patch(`/api/periods/${id}`, data),
   delete: (id: string) => api.delete(`/api/periods/${id}`),
 }
+
+export const budgetTemplatesAPI = {
+  list: () => api.get('/api/budget-templates'),
+  create: (data: object) => api.post('/api/budget-templates', data),
+  update: (id: string, data: object) => api.patch(`/api/budget-templates/${id}`, data),
+  delete: (id: string) => api.delete(`/api/budget-templates/${id}`),
+}

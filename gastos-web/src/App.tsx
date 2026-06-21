@@ -8,6 +8,7 @@ import Budgets from './pages/Budgets'
 import Categories from './pages/Categories'
 import Periods from './pages/Periods'
 import AppLayout from './components/layout/AppLayout'
+import BudgetTemplates from './pages/BudgetTemplates'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="budgets" element={<Budgets />} />
+          <Route path="budget-templates" element={<BudgetTemplates />} />
           <Route path="periods" element={<Periods />} />
           <Route path="categories" element={<Categories />} />
         </Route>
